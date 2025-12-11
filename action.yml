@@ -1,0 +1,90 @@
+name: Pyproject License Check
+description: Check Python project dependencies for license compliance using licensecheck
+
+inputs:
+  uv-version:
+    description: uv version to use
+    required: false
+    default: "7.1.3"
+  licensecheck-version:
+    description: licensecheck version to use
+    required: false
+    default: "2025.1.0"
+  skip-dependencies:
+    description: Space-separated list of dependencies to skip during license check
+    required: false
+    default: "wrapt"
+  ignore-licenses:
+    description: Space-separated list of license types to ignore
+    required: false
+    default: "MPL"
+  requirements-paths:
+    description: Paths to search for requirements files (pyproject.toml, requirements.txt)
+    required: false
+    default: "."
+  app-id:
+    description: GitHub App ID for accessing private repos (optional)
+    required: false
+    default: ""
+  app-private-key:
+    description: GitHub App private key for accessing private repos (optional)
+    required: false
+    default: ""
+  repository-owner:
+    description: Repository owner for GitHub App token (defaults to current repo owner)
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Create GitHub App Token able to read private repos
+      id: app
+      if: inputs.app-id != '' && inputs.app-private-key != ''
+      uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+      with:
+        app-id: ${{ inputs.app-id }}
+        private-key: ${{ inputs.app-private-key }}
+        owner: ${{ inputs.repository-owner || github.repository_owner }}
+        permission-contents: read
+
+    - name: Configure git to use app token for private repos
+      if: steps.app.outcome == 'success'
+      shell: bash
+      run: |
+        git config --global url."https://x-access-token:${{ steps.app.outputs.token }}@github.com/".insteadOf "https://github.com/"
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@5a7eac68fb9809dea845d802897dc5c723910fa3 # v7.1.3
+
+    - name: Run license check
+      shell: bash
+      run: |
+        # Build skip dependencies array if provided
+        SKIP_ARGS=()
+        if [[ -n "${{ inputs.skip-dependencies }}" ]]; then
+          IFS=' ' read -ra SKIP_DEPS <<< "${{ inputs.skip-dependencies }}"
+          for dep in "${SKIP_DEPS[@]}"; do
+            SKIP_ARGS+=(--skip-dependencies "$dep")
+          done
+        fi
+
+        # Build ignore licenses args if provided
+        IGNORE_ARGS=()
+        if [[ -n "${{ inputs.ignore-licenses }}" ]]; then
+          IFS=' ' read -ra IGNORE_LICENSES <<< "${{ inputs.ignore-licenses }}"
+          for license in "${IGNORE_LICENSES[@]}"; do
+            IGNORE_ARGS+=(--ignore-licenses "$license")
+          done
+        fi
+
+        # Find and check requirements files
+        find ${{ inputs.requirements-paths }} \( -name 'pyproject.toml' -o -name 'requirements.txt' \) -print0 | \
+          xargs -0 -r uvx licensecheck@${{ inputs.licensecheck-version }} --zero \
+            "${SKIP_ARGS[@]}" \
+            "${IGNORE_ARGS[@]}" \
+            --requirements-paths
+
+branding:
+  icon: shield
+  color: orange
