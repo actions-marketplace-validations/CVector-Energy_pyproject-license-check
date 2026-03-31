@@ -9,7 +9,7 @@ inputs:
   licensecheck-version:
     description: licensecheck version to use
     required: false
-    default: "2025.1.0"
+    default: "git+https://github.com/FHPythonUtils/LicenseCheck@74e526c1fc5751d6f37bea37a01a53a8ba172219" # See https://github.com/FHPythonUtils/LicenseCheck/issues/137
   skip-dependencies:
     description: Space-separated list of dependencies to skip during license check
     required: false
