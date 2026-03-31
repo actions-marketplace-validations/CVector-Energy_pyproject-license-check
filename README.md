@@ -12,7 +12,7 @@ This action:
 | Input | Description | Required | Default |
 |-------|-------------|----------|---------|
 | `uv-version` | uv version to use | No | `7.1.3` |
-| `licensecheck-version` | licensecheck version to use | No | `2025.1.0` |
+| `licensecheck-version` | licensecheck version to use | No | FHPythonUtils/LicenseCheck#137 |
 | `skip-dependencies` | Space-separated list of dependencies to skip | No | `wrapt` (BSD-2-Clause, see [issue](https://github.com/GrahamDumpleton/wrapt/issues/298)) |
 | `ignore-licenses` | Space-separated list of license types to ignore | No | `MPL` |
 | `requirements-paths` | Paths to search for requirements files | No | `.` |

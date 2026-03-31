@@ -78,9 +78,17 @@ runs:
           done
         fi
 
+        # Determine uvx --from spec: git URLs use @, PyPI versions use ==
+        LICENSECHECK_VERSION="${{ inputs.licensecheck-version }}"
+        if [[ "$LICENSECHECK_VERSION" == git+* ]]; then
+          FROM_SPEC="licensecheck @ ${LICENSECHECK_VERSION}"
+        else
+          FROM_SPEC="licensecheck==${LICENSECHECK_VERSION}"
+        fi
+
         # Find and check requirements files
         find ${{ inputs.requirements-paths }} \( -name 'pyproject.toml' -o -name 'requirements.txt' \) -print0 | \
-          xargs -0 -r uvx licensecheck@${{ inputs.licensecheck-version }} --zero \
+          xargs -0 -r uvx --from "$FROM_SPEC" licensecheck --zero \
             "${SKIP_ARGS[@]}" \
             "${IGNORE_ARGS[@]}" \
             --requirements-paths
