@@ -9,7 +9,7 @@ inputs:
   licensecheck-version:
     description: licensecheck version to use
     required: false
-    default: "2025.1.0"
+    default: "git+https://github.com/FHPythonUtils/LicenseCheck@74e526c1fc5751d6f37bea37a01a53a8ba172219" # See https://github.com/FHPythonUtils/LicenseCheck/issues/137
   skip-dependencies:
     description: Space-separated list of dependencies to skip during license check
     required: false
@@ -78,9 +78,17 @@ runs:
           done
         fi
 
+        # Determine uvx --from spec: git URLs use @, PyPI versions use ==
+        LICENSECHECK_VERSION="${{ inputs.licensecheck-version }}"
+        if [[ "$LICENSECHECK_VERSION" == git+* ]]; then
+          FROM_SPEC="licensecheck @ ${LICENSECHECK_VERSION}"
+        else
+          FROM_SPEC="licensecheck==${LICENSECHECK_VERSION}"
+        fi
+
         # Find and check requirements files
         find ${{ inputs.requirements-paths }} \( -name 'pyproject.toml' -o -name 'requirements.txt' \) -print0 | \
-          xargs -0 -r uvx licensecheck@${{ inputs.licensecheck-version }} --zero \
+          xargs -0 -r uvx --from "$FROM_SPEC" licensecheck --zero \
             "${SKIP_ARGS[@]}" \
             "${IGNORE_ARGS[@]}" \
             --requirements-paths
